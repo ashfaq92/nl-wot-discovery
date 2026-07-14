@@ -1,0 +1,9 @@
+# dataset: download from Kaggle (see README), not redistributed here
+mainSimulationAccessTraces.csv
+
+# environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

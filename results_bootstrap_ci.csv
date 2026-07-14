@@ -1,0 +1,10 @@
+method,n_queries,hit1,ci_lo,ci_hi,diff_vs_winner,diff_ci_lo,diff_ci_hi,excludes_zero
+all-MiniLM-L6-v2,61,0.787,0.689,0.885,,,,
+all-MiniLM-L12-v2,61,0.672,0.557,0.787,0.115,0.016,0.213,True
+multi-qa-MiniLM-L6-cos-v1,61,0.623,0.508,0.738,0.164,0.066,0.279,True
+all-mpnet-base-v2,61,0.639,0.508,0.754,0.148,0.016,0.279,True
+multi-qa-mpnet-base-dot-v1,61,0.672,0.557,0.787,0.115,0.0,0.23,False
+all-mpnet-base-v2+ms-marco-TinyBERT-L-2-v2,61,0.705,0.59,0.82,0.082,-0.066,0.213,False
+exact,61,0.18,0.082,0.279,0.607,0.475,0.738,True
+tfidf,61,0.492,0.361,0.623,0.295,0.131,0.443,True
+bm25,61,0.393,0.279,0.525,0.393,0.262,0.525,True

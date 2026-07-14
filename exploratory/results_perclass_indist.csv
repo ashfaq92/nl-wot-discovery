@@ -1,0 +1,123 @@
+endpoint,n_val_rows,shared_sentence,clf_recall,retr_recall,delta_retr_minus_clf,example
+/agent5/battery2/charge,4026,True,1.0,0.0,-1.0,i need to read battery service in garage
+/agent11/battery4/charge,4782,True,1.0,0.0002,-0.9998,i need to read battery service in watter room
+/agent12/battery6/charge,4037,True,1.0,0.7466,-0.2534,i need to read battery service in entrance
+/agent11/heatingcontrol2,25,True,1.0,0.84,-0.16,i need to write thermostat in watter room
+/agent21/movement21/movement,990,True,1.0,0.9889,-0.0111,i need to read movement sensor in room_2
+/agent23/movement23/movement,981,True,1.0,0.9898,-0.0102,i need to read movement sensor in room_4
+/agent13/movement13/movement,1017,True,1.0,0.9921,-0.0079,i need to read movement sensor in bed room
+/agent26/movement26/movement,1050,True,1.0,0.9924,-0.0076,i need to read movement sensor in room_7
+/agent25/movement25/movement,1060,True,1.0,0.9934,-0.0066,i need to read movement sensor in room_6
+/agent28/movement28/movement,1055,True,1.0,0.9943,-0.0057,i need to read movement sensor in room_9
+/agent11/movement11/movement,1045,True,1.0,0.9981,-0.0019,i need to read movement sensor in watter room
+/agent5/battery1/charge,4224,True,0.0,0.0,0.0,i need to write battery service in garage
+/agent6/tempin6,2111,False,1.0,1.0,0.0,i need to read sensor service in bath room
+/agent12/movement12/movement,1775,True,1.0,1.0,0.0,i need to read movement sensor in entrance
+/agent12/battery5/charging,1720,True,0.0,0.0,0.0,i need to read battery service in entrance
+/agent1/tempin1,1672,True,0.9791,0.9791,0.0,i need to write sensor service in bed room children
+/agent12/battery6/charging,1658,True,0.0,0.0,0.0,i need to read battery service in entrance
+/agent22/tempin22,1654,False,1.0,1.0,0.0,i need to read sensor service in room_3
+/agent21/tempin21,1627,False,1.0,1.0,0.0,i need to write sensor service in room_2
+/agent25/tempin25,1624,False,1.0,1.0,0.0,i need to read sensor service in room_6
+/agent28/tempin28,1617,False,1.0,1.0,0.0,i need to read sensor service in room_9
+/agent14/tempin14,1610,False,1.0,1.0,0.0,i need to write sensor service in shower room
+/agent2/tempin2,1610,True,1.0,1.0,0.0,i need to write sensor service in bed room parents
+/agent24/tempin24,1608,False,1.0,1.0,0.0,i need to write sensor service in room_5
+/agent29/tempin29,1598,False,1.0,1.0,0.0,i need to read sensor service in room_10
+/agent3/tempin3,1597,False,1.0,1.0,0.0,i need to write sensor service in dinning room
+/agent1/movement1/movement,1596,True,1.0,1.0,0.0,i need to read movement sensor in bed room children
+/agent27/tempin27,1593,False,1.0,1.0,0.0,i need to read sensor service in room_8
+/agent10/tempin10,1578,False,1.0,1.0,0.0,i need to read sensor service in living room
+/agent13/tempin13,1572,False,1.0,1.0,0.0,i need to read sensor service in bed room
+/agent23/tempin23,1564,False,1.0,1.0,0.0,i need to read sensor service in room_4
+/agent26/tempin26,1546,False,1.0,1.0,0.0,i need to write sensor service in room_7
+/agent5/tempin5,1546,False,1.0,1.0,0.0,i need to write sensor service in garage
+/agent10/movement10/movement,1098,True,1.0,1.0,0.0,i need to read movement sensor in living room
+/agent29/movement29/movement,1095,True,1.0,1.0,0.0,i need to read movement sensor in room_10
+/agent14/movement14/movement,1088,True,1.0,1.0,0.0,i need to read movement sensor in shower room
+/agent3/movement3/movement,1083,True,1.0,1.0,0.0,i need to read movement sensor in dinning room
+/agent24/movement24/movement,1069,True,1.0,1.0,0.0,i need to read movement sensor in room_5
+/agent27/movement27/movement,1060,True,1.0,1.0,0.0,i need to read movement sensor in room_8
+/agent5/movement5/movement,1055,True,1.0,1.0,0.0,i need to read movement sensor in garage
+/agent2/movement2/movement,1042,True,1.0,1.0,0.0,i need to read movement sensor in bed room parents
+/agent20/movement20/movement,1037,True,1.0,1.0,0.0,i need to read movement sensor in room_1
+/agent4/movement4/movement,1034,True,1.0,1.0,0.0,i need to read movement sensor in kitchen
+/agent4/battery3/charging,1033,True,1.0,1.0,0.0,i need to read battery service in kitchen
+/agent22/movement22/movement,1027,True,1.0,1.0,0.0,i need to read movement sensor in room_3
+/agent6/movement6/movement,1010,True,1.0,1.0,0.0,i need to read movement sensor in bath room
+/agent14/washingmachine3/washing,440,False,1.0,1.0,0.0,i need to read washing service in shower room
+/agent12/doorlock3/open,213,False,1.0,1.0,0.0,i need to write door lock service in entrance
+/agent20/lightcontrol20/lightOn,33,False,1.0,1.0,0.0,i need to read light controler in room_1
+/agent26/lightcontrol26/lightOn,33,False,1.0,1.0,0.0,i need to read light controler in room_7
+/agent24/lightcontrol24/lightOn,29,False,1.0,1.0,0.0,i need to read light controler in room_5
+/agent25/lightcontrol25/lightOn,29,False,1.0,1.0,0.0,i need to read light controler in room_6
+/agent21/lightcontrol21/lightOn,28,False,1.0,1.0,0.0,i need to read light controler in room_2
+/agent22/lightcontrol22/lightOn,26,False,1.0,1.0,0.0,i need to write light controler in room_3
+/agent29/lightcontrol29/lightOn,26,False,1.0,1.0,0.0,i need to read light controler in room_10
+/agent21/doorlock5/open,25,False,1.0,1.0,0.0,i need to read door lock service in room_2
+/agent27/lightcontrol27/lightOn,25,False,1.0,1.0,0.0,i need to read light controler in room_8
+/agent28/lightcontrol28/lightOn,24,False,1.0,1.0,0.0,i need to read light controler in room_9
+/agent14/lightcontrol14/lightOn,21,False,1.0,1.0,0.0,i need to write light controler in shower room
+/agent23/lightcontrol23/lightOn,20,False,1.0,1.0,0.0,i need to write light controler in room_4
+/agent10/lightcontrol10/lightOn,17,True,1.0,1.0,0.0,i need to read light controler in living room
+/agent12/lightcontrol12/lightOn,17,False,1.0,1.0,0.0,i need to write light controler in entrance
+/agent3/heatingcontrol1,17,False,1.0,1.0,0.0,i need to write thermostat in dinning room
+/agent2/lightcontrol2/lightOn,15,False,1.0,1.0,0.0,i need to write light controler in bed room parents
+/agent11/lightcontrol11/lightOn,14,False,1.0,1.0,0.0,i need to read light controler in watter room
+/agent20/doorlock4/open,14,False,1.0,1.0,0.0,i need to read door lock service in room_1
+/agent24/movement24/lastChange,14,True,0.0,0.0,0.0,i need to write movement sensor in room_5
+/agent4/lightcontrol4/lightOn,14,False,1.0,1.0,0.0,i need to write light controler in kitchen
+/agent22/movement22/lastChange,13,True,0.0,0.0,0.0,i need to write movement sensor in room_3
+/agent25/heatingcontrol4,13,False,1.0,1.0,0.0,i need to write thermostat in room_6
+/agent1/lightcontrol1/lightOn,12,False,1.0,1.0,0.0,i need to write light controler in bed room children
+/agent3/lightcontrol3/lightOn,12,False,1.0,1.0,0.0,i need to write light controler in dinning room
+/agent5/movement5/lastChange,12,True,0.0,0.0,0.0,i need to write movement sensor in garage
+/agent6/lightcontrol6/lightOn,12,False,1.0,1.0,0.0,i need to write light controler in bath room
+/agent13/lightcontrol13/lightOn,11,False,1.0,1.0,0.0,i need to write light controler in bed room
+/agent5/lightcontrol5/lightOn,10,False,1.0,1.0,0.0,i need to write light controler in garage
+/agent6/movement6/lastChange,10,True,0.0,0.0,0.0,i need to write movement sensor in bath room
+/agent2/movement2/lastChange,9,True,0.0,0.0,0.0,i need to write movement sensor in bed room parents
+/agent1/movement1/lastChange,8,True,0.0,0.0,0.0,i need to write movement sensor in bed room children
+/agent14/movement14/lastChange,8,True,0.0,0.0,0.0,i need to write movement sensor in shower room
+/agent20/movement20/lastChange,7,True,0.0,0.0,0.0,i need to write movement sensor in room_1
+/agent3/movement3/lastChange,6,True,0.0,0.0,0.0,i need to write movement sensor in dinning room
+/agent4/movement4/lastChange,6,True,0.0,0.0,0.0,i need to write movement sensor in kitchen
+/agent29/movement29/lastChange,5,True,0.0,0.0,0.0,i need to write movement sensor in room_10
+/agent10/movement10/lastChange,3,True,0.0,0.0,0.0,i need to write movement sensor in living room
+/agent11/washingmachine3/washing,3,False,1.0,1.0,0.0,i need to read washing service in watter room
+/agent12/movement12/lastChange,3,True,0.0,0.0,0.0,i need to write movement sensor in entrance
+/agent27/movement27/lastChange,3,True,0.0,0.0,0.0,i need to write movement sensor in room_8
+/agent10/doorlock2/open,2,False,1.0,1.0,0.0,i need to read door lock service in living room
+/agent10/movement10,1,True,0.0,0.0,0.0,i need to read movement sensor in living room
+/agent4/tempin4,1651,False,0.9994,1.0,0.0006,i need to write sensor service in kitchen
+/agent11/tempin11,1648,False,0.9994,1.0,0.0006,i need to read sensor service in watter room
+/agent20/tempin20,1590,False,0.9994,1.0,0.0006,i need to write sensor service in room_1
+/agent4/battery3/charge,1165,True,0.0,0.0009,0.0009,i need to read battery service in kitchen
+/agent12/heatingcontrol3,19,False,0.9474,1.0,0.0526,i need to write thermostat in entrance
+/agent5/battery2/charging,1640,True,0.0159,0.0707,0.0549,i need to read battery service in garage
+/agent12/battery5/charge,4076,True,0.0,0.2539,0.2539,i need to read battery service in entrance
+/agent5/battery1/charging,1700,True,0.0,0.9418,0.9418,i need to read battery service in garage
+/agent11/battery4/charging,2175,True,0.0,1.0,1.0,i need to read battery service in watter room
+/agent13/movement13/lastChange,10,True,0.0,1.0,1.0,i need to write movement sensor in bed room
+/agent23/movement23/lastChange,7,True,0.0,1.0,1.0,i need to write movement sensor in room_4
+/agent25/movement25/lastChange,7,True,0.0,1.0,1.0,i need to write movement sensor in room_6
+/agent26/movement26/lastChange,7,True,0.0,1.0,1.0,i need to write movement sensor in room_7
+/agent28/movement28/lastChange,6,True,0.0,1.0,1.0,i need to write movement sensor in room_9
+/agent21/movement21/lastChange,5,True,0.0,1.0,1.0,i need to write movement sensor in room_2
+/agent11/movement11/lastChange,3,True,0.0,1.0,1.0,i need to write movement sensor in watter room
+/agent3/doorlock1/open,2,False,0.0,1.0,1.0,i need to subscribe door lock service in dinning room
+/agent1/lightcontrol1,1,False,0.0,1.0,1.0,i need to register service light controler in bed room children
+/agent10/doorlock2,1,False,0.0,1.0,1.0,i need to register service door lock service in living room
+/agent11/movement11,1,False,0.0,1.0,1.0,i need to register service movement sensor in watter room
+/agent11/washingmachine2,1,False,0.0,1.0,1.0,i need to register service washing service in watter room
+/agent12/heatingcontrol3/heatingOn,1,False,0.0,1.0,1.0,i need to read thermostat in entrance
+/agent12/movement12,1,False,0.0,1.0,1.0,i need to register service movement sensor in entrance
+/agent12/tempin12,1,False,0.0,1.0,1.0,i need to read sensor service in entrance
+/agent13/lightcontrol13,1,False,0.0,1.0,1.0,i need to register service light controler in bed room
+/agent2/lightcontrol2,1,False,0.0,1.0,1.0,i need to register service light controler in bed room parents
+/agent2/movement2,1,False,0.0,1.0,1.0,i need to register service movement sensor in bed room parents
+/agent20/movement20,1,False,0.0,1.0,1.0,i need to register service movement sensor in room_1
+/agent21/doorlock5,1,False,0.0,1.0,1.0,i need to register service door lock service in room_2
+/agent21/movement21,1,False,0.0,1.0,1.0,i need to register service movement sensor in room_2
+/agent6/movement6,1,False,0.0,1.0,1.0,i need to register service movement sensor in bath room
+/agent6/washingmachine1/washing,1,False,0.0,1.0,1.0,i need to read washing service in bath room

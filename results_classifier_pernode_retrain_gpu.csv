@@ -1,0 +1,2 @@
+scope,n_rows,n_classes,retrain_s_mean,retrain_s_std,val_top1_mean,n_seeds,device
+full,357952,170,6.6,0.2,0.795,5,cuda

@@ -1,0 +1,3 @@
+split,val_top1,train_s,bench_hit@1,bench_hit@3
+random,0.792,462.2,0.18,0.279
+group_sentence,0.782,594.9,0.246,0.295
