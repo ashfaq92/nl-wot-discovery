@@ -21,11 +21,13 @@ os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 import pandas as pd
 
-from eval_lib import load_records, build_record_text, evaluate
+from eval_lib import (DEFAULT_RETRIEVE_K, load_records, build_record_text,
+                      evaluate)
 from queries import QUERIES
 from retrievers import ExactLookupRetriever, TfidfRetriever, BM25Retriever, BiEncoderRetriever
 
 KS = (1, 3, 5, 10)
+RETRIEVE_K = DEFAULT_RETRIEVE_K
 CSV = sys.argv[1] if len(sys.argv) > 1 else "mainSimulationAccessTraces.csv"
 FORMATS = ("sentence", "tuple", "td_like")
 BI = "sentence-transformers/all-MiniLM-L6-v2"
@@ -46,14 +48,19 @@ def add(fmt, name, res):
 
 
 # exact lookup: format-invariant, run once
-add("(invariant)", "exact", evaluate(ExactLookupRetriever(base), QUERIES, ks=KS))
+add("(invariant)", "exact",
+    evaluate(ExactLookupRetriever(base), QUERIES, ks=KS,
+             retrieve_k=RETRIEVE_K))
 
 for fmt in FORMATS:
     recs = build_record_text(base, fmt=fmt)
-    add(fmt, "tfidf", evaluate(TfidfRetriever(recs), QUERIES, ks=KS))
-    add(fmt, "bm25", evaluate(BM25Retriever(recs), QUERIES, ks=KS))
+    add(fmt, "tfidf", evaluate(TfidfRetriever(recs), QUERIES, ks=KS,
+                                retrieve_k=RETRIEVE_K))
+    add(fmt, "bm25", evaluate(BM25Retriever(recs), QUERIES, ks=KS,
+                               retrieve_k=RETRIEVE_K))
     bi = BiEncoderRetriever(recs, BI, use_reranker=False, device="cpu")
-    add(fmt, "MiniLM-L6", evaluate(bi, QUERIES, ks=KS))
+    add(fmt, "MiniLM-L6", evaluate(bi, QUERIES, ks=KS,
+                                    retrieve_k=RETRIEVE_K))
 
 df = pd.DataFrame(rows)
 df.to_csv("results_format_ablation.csv", index=False)

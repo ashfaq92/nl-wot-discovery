@@ -1,6 +1,3 @@
-# dataset: download from Kaggle (see README), not redistributed here
-mainSimulationAccessTraces.csv
-
 # environments and caches
 .venv/
 venv/

@@ -24,11 +24,14 @@ os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 import numpy as np
 import pandas as pd
 
-from eval_lib import load_records, build_record_text, hit_at_k, reciprocal_rank
+from eval_lib import (load_records, build_record_text, hit_at_k_scored,
+                      reciprocal_rank_scored, DEFAULT_RETRIEVE_K)
 from queries import QUERIES
 from federated import FederatedIndex
 
 KS = (1, 3, 5)
+RETRIEVE_K = DEFAULT_RETRIEVE_K   # raw per-node top_k, so endpoint dedup can't
+                                  # truncate Hit@k below the centralized run's
 THRESHOLD = 0.40
 COORDINATOR = 7
 CSV = sys.argv[1] if len(sys.argv) > 1 else "mainSimulationAccessTraces.csv"
@@ -57,15 +60,14 @@ def run(fed, strategy, origin_mode, threshold=THRESHOLD):
 
         fn = getattr(fed, strategy)
         if strategy == "broadcast":
-            ranked, visited, hops = fn(q["query"], max(KS), origin=origin)
+            ranked, visited, hops = fn(q["query"], RETRIEVE_K, origin=origin)
         else:
-            ranked, visited, hops = fn(q["query"], max(KS), origin=origin,
+            ranked, visited, hops = fn(q["query"], RETRIEVE_K, origin=origin,
                                        threshold=threshold)
-        eps = [ep for ep, _ in ranked]
         row = {"id": q["id"], "visited": visited, "hops": hops,
-               "mrr": reciprocal_rank(eps, expected)}
+               "mrr": reciprocal_rank_scored(ranked, expected)}
         for k in KS:
-            row[f"hit@{k}"] = hit_at_k(eps, expected, k)
+            row[f"hit@{k}"] = hit_at_k_scored(ranked, expected, k)
         rows.append(row)
     df = pd.DataFrame(rows)
     agg = {"strategy": strategy, "entry": origin_mode,
@@ -85,8 +87,19 @@ if __name__ == "__main__":
     print(f"federation: {len(fed.nodes)} nodes ({n_nonempty} non-empty), "
           f"threshold={THRESHOLD}\n")
 
+    # Broadcast's accuracy/cost is architecturally entry-invariant (it contacts
+    # every device node regardless of origin), but that's only exercised here,
+    # not assumed: run both origins and assert they agree before collapsing
+    # the table row to entry="any".
+    bcast_gateway = run(fed, "broadcast", "gateway")
+    bcast_local = run(fed, "broadcast", "local")
+    bcast_cols = ["hit@1", "hit@3", "hit@5", "mrr", "avg_nodes_visited", "avg_hops"]
+    assert all(bcast_gateway[c] == bcast_local[c] for c in bcast_cols), (
+        f"broadcast is not entry-invariant: gateway={bcast_gateway} local={bcast_local}")
+    bcast_gateway["entry"] = "any"
+
     results = []
-    results.append(run(fed, "broadcast", "gateway"))
+    results.append(bcast_gateway)
     results.append(run(fed, "first_served", "gateway"))
     results.append(run(fed, "local_first", "gateway"))
     results.append(run(fed, "first_served", "local"))

@@ -36,6 +36,7 @@ RECORD_COLS = ["operation", "destinationServiceType",
                "destinationLocation", "accessedNodeAddress"]
 
 RECORD_FORMATS = ("sentence", "tuple", "td_like")
+DEFAULT_RETRIEVE_K = 50
 
 
 # ---------------------------------------------------------------------------
@@ -73,7 +74,7 @@ def load_records(csv_path: str) -> pd.DataFrame:
 
 
 def build_record_text(records: pd.DataFrame, fmt: str = "sentence",
-                      include_endpoint: bool = False) -> pd.DataFrame:
+                      include_endpoint: bool = False, preprocess: bool = True) -> pd.DataFrame:
     """Add a 'record_text' column rendering each record in the chosen format.
 
     fmt:
@@ -84,6 +85,11 @@ def build_record_text(records: pd.DataFrame, fmt: str = "sentence",
     include_endpoint: if True, append the endpoint href to the text (only
       meaningful for "td_like"; off by default since queries never contain
       endpoint tokens, so it cannot help matching and only adds noise).
+
+    preprocess: if False, skip preprocess_text() (no camelCase split, no
+      lowercasing) so the raw field-concatenated sentence is left untouched --
+      matching prior work's classifier reimplementation, which performs no
+      such normalization (see run_preprocessing_ablation.py).
     """
     if fmt not in RECORD_FORMATS:
         raise ValueError(f"unknown fmt {fmt!r}; choose from {RECORD_FORMATS}")
@@ -105,7 +111,7 @@ def build_record_text(records: pd.DataFrame, fmt: str = "sentence",
         if include_endpoint:
             raw = raw + ". Endpoint: " + ep
 
-    out["record_text"] = raw.map(preprocess_text)
+    out["record_text"] = raw.map(preprocess_text) if preprocess else raw
     return out
 
 
@@ -124,10 +130,77 @@ def _dedup_keep_order(endpoints):
     return out
 
 
+def _dedup_scored(results):
+    """De-duplicate scored (endpoint, score) results, keeping the first
+    (best-ranked) occurrence of each endpoint."""
+    seen = set()
+    out = []
+    for ep, sc in results:
+        if ep not in seen:
+            seen.add(ep)
+            out.append((ep, float(sc)))
+    return out
+
+
+def guaranteed_rank(results, expected):
+    """Worst-case rank of the first acceptable endpoint under adversarial ties.
+
+    Many DS2OS service records serialize to identical text: they share the same
+    operation/service/location while exposing different endpoint addresses (e.g.
+    a sensor's ``.../movement`` reading and its ``.../lastChange`` timestamp), so
+    a text-only retriever scores them identically and their relative order is
+    arbitrary (decided by trace row order alone). We therefore credit a method
+    only for a position it is *guaranteed* whatever order exact score ties break
+    in. For the best-scoring acceptable endpoint e, that position is
+
+        (# endpoints scoring strictly higher) + (# non-acceptable endpoints tied
+        with e) + 1,
+
+    because an adversary can place every strictly-higher record and every
+    non-acceptable tied record ahead of e, but cannot push an acceptable record
+    past its own tie group. Consequences: a rank-1 tie against any non-acceptable
+    sibling is never banked as a hit@1 (the win would be a coin flip), whereas a
+    tie whose members are all acceptable stays a guaranteed hit.
+
+    ``results`` is the retriever's scored output ``[(endpoint, score), ...]``.
+    Returns the guaranteed rank (>= 1), or None if no acceptable endpoint was
+    retrieved.
+    """
+    ded = _dedup_scored(results)
+    best = None
+    for ep, sc in ded:
+        if ep in expected:
+            higher = sum(1 for _, s in ded if s > sc)
+            nonacc_tied = sum(1 for e2, s in ded if s == sc and e2 not in expected)
+            r = higher + nonacc_tied + 1
+            best = r if best is None else min(best, r)
+    return best
+
+
 def hit_at_k(ranked_endpoints, expected, k) -> float:
-    """1.0 if any acceptable endpoint appears in the top-k (de-duplicated)."""
+    """1.0 if any acceptable endpoint appears in the top-k (de-duplicated).
+
+    Endpoint-only variant, blind to score ties; used by the in-distribution
+    per-class analysis. Benchmark scoring (see ``evaluate``) uses the tie-aware
+    ``hit_at_k_scored`` instead.
+    """
     topk = _dedup_keep_order(ranked_endpoints)[:k]
     return 1.0 if any(e in expected for e in topk) else 0.0
+
+
+def hit_at_k_scored(results, expected, k) -> float:
+    """1.0 if an acceptable endpoint is *guaranteed* within the top-k under any
+    resolution of exact score ties (see ``guaranteed_rank``)."""
+    r = guaranteed_rank(results, expected)
+    return 1.0 if (r is not None and r <= k) else 0.0
+
+
+def reciprocal_rank_scored(results, expected) -> float:
+    """1 / guaranteed rank of the first acceptable endpoint, else 0. Ties are
+    resolved pessimistically (bottom of any non-acceptable tie block), matching
+    ``hit_at_k_scored`` so both metrics use one tie convention."""
+    r = guaranteed_rank(results, expected)
+    return (1.0 / r) if r else 0.0
 
 
 def recall_at_k(ranked_endpoints, expected, k) -> float:
@@ -268,7 +341,14 @@ def evaluate(retriever, queries, ks=(1, 3, 5, 10),
       queries   : list of query dicts (see queries.py).
       ks        : k values for Hit@k / Recall@k / Precision@k.
       no_answer_threshold : optional fixed accept/abstain threshold.
-      retrieve_k : top_k requested from the retriever (default: max(ks)).
+      retrieve_k : raw top_k requested from the retriever. Defaults to
+                   DEFAULT_RETRIEVE_K so endpoint de-duplication cannot
+                   silently truncate Hit@k.
+
+    Hit@k and MRR are tie-aware (see ``guaranteed_rank``): identical-text records
+    tie exactly, and a method is credited only for a rank it is guaranteed under
+    any resolution of those ties, so the reported numbers do not depend on the
+    trace's row order.
 
     Returns dict with:
       per_query : pandas DataFrame (one row per query, metrics + latency + score)
@@ -277,7 +357,7 @@ def evaluate(retriever, queries, ks=(1, 3, 5, 10),
       no_answer : output of no_answer_scores over all queries
       latency   : {mean, p50, p95} seconds
     """
-    retrieve_k = retrieve_k or max(ks)
+    retrieve_k = max(retrieve_k or DEFAULT_RETRIEVE_K, max(ks))
     rows = []
 
     for q in queries:
@@ -300,10 +380,10 @@ def evaluate(retriever, queries, ks=(1, 3, 5, 10),
         }
         if answerable:
             for k in ks:
-                row[f"hit@{k}"] = hit_at_k(ranked_eps, expected, k)
+                row[f"hit@{k}"] = hit_at_k_scored(results, expected, k)
                 row[f"recall@{k}"] = recall_at_k(ranked_eps, expected, k)
                 row[f"precision@{k}"] = precision_at_k(ranked_eps, expected, k)
-            row["mrr"] = reciprocal_rank(ranked_eps, expected)
+            row["mrr"] = reciprocal_rank_scored(results, expected)
         rows.append(row)
 
     per_query = pd.DataFrame(rows)
@@ -359,7 +439,7 @@ class _TokenOverlapRetriever:
             inter = len(q & toks)
             denom = (len(q) + len(toks)) or 1
             scored.append((ep, inter / denom))
-        scored.sort(key=lambda x: x[1], reverse=True)
+        scored.sort(key=lambda x: (-x[1], x[0]))
         return scored[:top_k]
 
 

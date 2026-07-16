@@ -14,9 +14,10 @@ import sys
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
+import numpy as np
 import pandas as pd
 
-from eval_lib import load_records, build_record_text, evaluate
+from eval_lib import load_records, build_record_text, evaluate, Timer, DEFAULT_RETRIEVE_K
 from queries import QUERIES
 from retrievers import (ExactLookupRetriever, TfidfRetriever, BM25Retriever,
                         BiEncoderRetriever)
@@ -24,6 +25,28 @@ from retrievers import (ExactLookupRetriever, TfidfRetriever, BM25Retriever,
 KS = (1, 3, 5, 10)
 CSV = sys.argv[1] if len(sys.argv) > 1 else "mainSimulationAccessTraces.csv"
 FMT = sys.argv[2] if len(sys.argv) > 2 else "sentence"
+
+LAT_RUNS = 5      # matches "every reported timing is the mean over five runs"
+LAT_WARMUP = 5    # queries, un-timed, before the timed runs
+
+
+def measure_latency_ms(retriever, retrieve_k=DEFAULT_RETRIEVE_K,
+                       runs=LAT_RUNS, warmup=LAT_WARMUP):
+    """p50/p95 query latency, each the mean over `runs` warmed-up passes over
+    the full query set (mirrors run_deployment.py's protocol)."""
+    for q in QUERIES[:warmup]:
+        retriever.search(q["query"], retrieve_k)
+    p50s, p95s = [], []
+    for _ in range(runs):
+        lat = []
+        for q in QUERIES:
+            with Timer() as t:
+                retriever.search(q["query"], retrieve_k)
+            lat.append(t.s)
+        lat = np.array(lat) * 1000.0
+        p50s.append(float(np.percentile(lat, 50)))
+        p95s.append(float(np.percentile(lat, 95)))
+    return float(np.mean(p50s)), float(np.mean(p95s))
 
 # Frozen bi-encoders spanning small -> base. All are symmetric sentence
 # encoders that need no query/passage prefix (so the comparison is fair without
@@ -45,8 +68,8 @@ rows = []
 cat_rows = []
 
 
-def add(tag, res, load_s=None, index_s=None):
-    o, na, lat = res["overall"], res["no_answer"], res["latency"]
+def add(tag, res, load_s=None, index_s=None, retriever=None):
+    o, na = res["overall"], res["no_answer"]
     row = {"retriever": tag, "format": FMT}
     for k in KS:
         row[f"hit@{k}"] = round(o[f"hit@{k}"], 3)
@@ -57,8 +80,9 @@ def add(tag, res, load_s=None, index_s=None):
     row["na_f1"] = round(na["best_f1"], 3)
     row["load_s"] = round(load_s, 2) if load_s is not None else ""
     row["index_s"] = round(index_s, 3) if index_s is not None else ""
-    row["p50_ms"] = round(lat["p50"] * 1000, 2)
-    row["p95_ms"] = round(lat["p95"] * 1000, 2)
+    p50_ms, p95_ms = measure_latency_ms(retriever)
+    row["p50_ms"] = round(p50_ms, 2)
+    row["p95_ms"] = round(p95_ms, 2)
     rows.append(row)
     for cat, m in res["by_category"].items():
         cat_rows.append({"retriever": tag, "format": FMT, "category": cat,
@@ -72,19 +96,21 @@ def add(tag, res, load_s=None, index_s=None):
 print("\n[lexical baselines]")
 for R, tag in [(ExactLookupRetriever, "exact"), (TfidfRetriever, "tfidf"),
                (BM25Retriever, "bm25")]:
-    add(tag, evaluate(R(records), QUERIES, ks=KS))
+    r = R(records)
+    add(tag, evaluate(r, QUERIES, ks=KS), retriever=r)
 
 print("\n[bi-encoders, no rerank]")
 for bi in BI:
     r = BiEncoderRetriever(records, bi, use_reranker=False, device="cpu")
-    add(f"bi:{r.name}", evaluate(r, QUERIES, ks=KS), r.load_time_s, r.index_build_time_s)
+    add(f"bi:{r.name}", evaluate(r, QUERIES, ks=KS), r.load_time_s, r.index_build_time_s,
+        retriever=r)
 
 print("\n[bi-encoder + cross-encoder rerank]")
 for bi in BI:
     for cr in CROSS:
         r = BiEncoderRetriever(records, bi, cr, use_reranker=True, device="cpu")
         add(f"bi:{r.name}+{r.cross_name}", evaluate(r, QUERIES, ks=KS),
-            r.load_time_s, r.index_build_time_s)
+            r.load_time_s, r.index_build_time_s, retriever=r)
 
 df = pd.DataFrame(rows)
 out = f"results_centralized_{FMT}.csv"

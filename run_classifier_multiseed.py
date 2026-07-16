@@ -43,7 +43,7 @@ POOL = 10
 KS = (1, 3, 5, 10)
 BI_ENCODER = "sentence-transformers/all-MiniLM-L6-v2"
 CATS = ["templated", "paraphrased", "synonym", "abstract",
-        "ambiguous_location", "ambiguous_device"]
+        "ambiguous_location", "ambiguous_device", "ambiguous_instance"]
 BINS = [0, 1.5, 15, 150, 1500, 1e9]
 BIN_LABELS = ["~1 (singleton)", "2-15", "16-150", "151-1500", ">1500"]
 

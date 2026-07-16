@@ -5,8 +5,12 @@ reranked configuration, and the three training-free baselines), computes the
 per-query Hit@1 vector over the answerable queries, then:
   (1) a percentile bootstrap CI for each method's own Hit@1, and
   (2) a PAIRED bootstrap CI for the difference between the deployed winner
-      (all-MiniLM-L6-v2) and every rival, resampling query indices with
-      replacement so both methods are evaluated on the same resample.
+      (all-MiniLM-L6-v2) and every rival -- including
+      all-mpnet-base-v2+ms-marco-TinyBERT-L-2-v2, whose raw Hit@1 point
+      estimate now edges ahead of the deployed model since the cross-encoder
+      register-mismatch fix, but see excludes_zero below -- resampling query
+      indices with replacement so both methods are evaluated on the same
+      resample.
 The pipeline is deterministic, so no seeds are involved beyond the fixed
 bootstrap RNG (42). B = 10,000 resamples.
 

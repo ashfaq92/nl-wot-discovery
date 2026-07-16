@@ -36,6 +36,7 @@ CATEGORIES = [
     "abstract",
     "ambiguous_location",
     "ambiguous_device",
+    "ambiguous_instance",
     "no_answer",
 ]
 
@@ -175,15 +176,13 @@ QUERIES = [
     _q("tmpl02", "templated", "I need to read movementSensor in Entrance", MOVE["Entrance"]),
     _q("tmpl03", "templated", "I need to read sensorService in BedroomParents", TEMP["BedroomParents"]),
     _q("tmpl04", "templated", "I need to write doorLockService in Entrance", LOCK["Entrance"]),
-    _q("tmpl05", "templated", "I need to read batteryService in Garage", BATT["Garage"], ambiguous=True,
-       note="two batteries in the garage; either is acceptable"),
-    _q("tmpl06", "templated", "I need to read washingService in Showerroom", WASH["Showerroom"]),
-    _q("tmpl07", "templated", "I need to read thermostat in Dinningroom", THERMO["Dinningroom"]),
-    _q("tmpl08", "templated", "I need to write lightControler in Garage", LIGHT["Garage"]),
-    _q("tmpl09", "templated", "I need to read movementSensor in room_5", MOVE["room_5"]),
-    _q("tmpl10", "templated", "I need to read sensorService in room_8", TEMP["room_8"]),
-    _q("tmpl11", "templated", "I need to write doorLockService in Livingroom", LOCK["Livingroom"]),
-    _q("tmpl12", "templated", "I need to read lightControler in Watterroom", LIGHT["Watterroom"]),
+    _q("tmpl05", "templated", "I need to read washingService in Showerroom", WASH["Showerroom"]),
+    _q("tmpl06", "templated", "I need to read thermostat in Dinningroom", THERMO["Dinningroom"]),
+    _q("tmpl07", "templated", "I need to write lightControler in Garage", LIGHT["Garage"]),
+    _q("tmpl08", "templated", "I need to read movementSensor in room_5", MOVE["room_5"]),
+    _q("tmpl09", "templated", "I need to read sensorService in room_8", TEMP["room_8"]),
+    _q("tmpl10", "templated", "I need to write doorLockService in Livingroom", LOCK["Livingroom"]),
+    _q("tmpl11", "templated", "I need to read lightControler in Watterroom", LIGHT["Watterroom"]),
 
     # -----------------------------------------------------------------
     # 2) Paraphrased — the 10 ChatGPT-5 paraphrases from Llopis 2025
@@ -236,8 +235,7 @@ QUERIES = [
     _q("syn09", "synonym", "Run the laundry in the bathroom.", WASH["Bathroom"],
        note="'laundry' vs washingService"),
     _q("syn10", "synonym", "Crank up the heating in the entrance.", THERMO["Entrance"]),
-    _q("syn11", "synonym", "Power reading for the garage cells.", BATT["Garage"], ambiguous=True),
-    _q("syn12", "synonym", "Light up the shower room.", LIGHT["Showerroom"]),
+    _q("syn11", "synonym", "Light up the shower room.", LIGHT["Showerroom"]),
 
     # -----------------------------------------------------------------
     # 4) Abstract / indirect — intent without naming the device type.
@@ -280,7 +278,17 @@ QUERIES = [
     _q("ambd05", "ambiguous_device", "What's the temperature?", list(TEMP.values()), ambiguous=True),
 
     # -----------------------------------------------------------------
-    # 7) No-answer — device type or capability not present in the corpus.
+    # 7) Ambiguous instance — location and device type both specified,
+    #    but that location has more than one physical device of that
+    #    type, so any of them is an acceptable answer.
+    # -----------------------------------------------------------------
+    _q("ambi01", "ambiguous_instance", "I need to read batteryService in Garage", BATT["Garage"],
+       ambiguous=True, note="two batteries in the garage; either is acceptable"),
+    _q("ambi02", "ambiguous_instance", "Power reading for the garage cells.", BATT["Garage"],
+       ambiguous=True, note="two batteries in the garage; either is acceptable"),
+
+    # -----------------------------------------------------------------
+    # 8) No-answer — device type or capability not present in the corpus.
     #    Correct behaviour is to abstain (expected == []).
     # -----------------------------------------------------------------
     _q("no01", "no_answer", "Turn on the television in the living room.", [],

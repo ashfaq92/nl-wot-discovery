@@ -1,0 +1,4 @@
+method,preprocess,hit@1,hit@3,hit@5,hit@10,mrr,val_top1_mean,val_top1_std,hit@1_mean,hit@1_std,hit@3_mean,hit@3_std,hit@5_mean,hit@5_std,hit@10_mean,hit@10_std,mrr_mean,mrr_std
+retriever,True,0.705,0.918,0.918,1.0,0.811,,,,,,,,,,,,
+retriever,False,0.541,0.869,0.885,0.967,0.7,,,,,,,,,,,,
+classifier,False,,,,,,0.794,0.001,0.227,0.034,0.259,0.051,0.285,0.06,0.347,0.082,0.265,0.045

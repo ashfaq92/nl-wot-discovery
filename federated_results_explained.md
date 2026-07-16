@@ -41,12 +41,23 @@ Breadth-first search (BFS) from the gateway (node 7):
 **Broadcast** searches every node that holds records. Node 7 holds none, so it
 is traversed but not counted as "visited". Hence for *every* query:
 nodes visited = 6, hops = max BFS depth = 2. That is exactly the table row
-`broadcast, gateway: Nodes 6.0, Hops 2.0` (no averaging needed; it is constant).
+`broadcast, any: Nodes 6.0, Hops 2.0` (no averaging needed; it is constant --
+`run_federated.py` runs broadcast from both the gateway and a local entry and
+asserts the two agree before collapsing the row to entry "any"; the graph's
+eccentricity from every node is 2, so this holds regardless of origin).
 Broadcast then merges all candidates by best-score-per-endpoint, which is
 mathematically the same ranking a single centralized index would produce, so
-Hit@1/Hit@3/MRR (0.79 / 0.92 / 0.85) match the centralized row by construction.
+Hit@1/Hit@3/MRR (0.71 / 0.92 / 0.81) match the centralized row (Table
+`tab:centralized`, `all-MiniLM-L6-v2`: 0.71 / 0.92 / 0.81) by construction.
+Per-node retrieval uses the same raw top-k (50, `DEFAULT_RETRIEVE_K`) as the
+centralized run for this reason -- an earlier version capped it at 5, which
+truncated candidates before the merge and left MRR off by about a point.
 
 ## 3. What "nodes" and "hops" count (from the code)
+
+"Hops" is not literally a count of links one query traverses in sequence; it
+is the BFS hop-depth reached from the entry node, and what "reached" means
+depends on the strategy (see `federated.py`'s delegation-strategy docstrings):
 
 - `nodes visited` = number of nodes whose **index was actually searched**
   (empty node 7 never counts).
@@ -55,7 +66,7 @@ Hit@1/Hit@3/MRR (0.79 / 0.92 / 0.85) match the centralized row by construction.
   - `first_served`: BFS depth of the node whose result was **returned**.
   - `local_first`: BFS depth **reached when the loop stopped**.
 
-This is why first-served (local) shows 0.1 hops but local-first (local) shows
+This is why first-served (local) shows 0.10 hops but local-first (local) shows
 0.54 hops even though both visit the same 2.33 nodes on average: when the
 answer is found at depth 0 or 1, first-served reports the depth of the
 *answering* node while local-first reports the depth of the *last-visited*
@@ -71,7 +82,7 @@ point and use the cosine-similarity of the local top-1 result:
 - **local-first**: keep visiting and *merge* everything seen so far; stop as
   soon as the best merged score ≥ 0.40.
 
-## 5. Why the gateway rows collapse to Hit@1 ≈ 0.54
+## 5. Why the gateway rows collapse to Hit@1 ≈ 0.49
 
 From node 7, BFS visits device nodes in the order 2, 3, 6, then 1, 4, 5.
 The entry node contributes no candidates, so both strategies simply walk this
@@ -79,7 +90,7 @@ fixed order and stop at the first node with a confident (≥ 0.40) local answer.
 A semantically similar but *wrong-room* device (e.g., a light in another room)
 often clears 0.40 before the true node is reached, so the walk stops early:
 on average after ~2.97 nodes at depth ~1.3. Both strategies degrade
-identically on Hit@1 (0.54) because they apply the same stopping rule to the
+identically on Hit@1 (0.49) because they apply the same stopping rule to the
 same node order; they differ only in the hop bookkeeping above.
 
 Sanity check on the averages: with six device nodes and stops mostly at the
@@ -106,6 +117,6 @@ python run_federated.py          # writes results_federated.csv
 python federated.py              # prints partition + per-node counts
 ```
 
-Rounding: the CSV stores e.g. 0.787 → the paper reports 0.79; 2.97 → "about
+Rounding: the CSV stores e.g. 0.705 → the paper reports 0.71; 2.97 → "about
 three nodes"; 61 answerable queries are the denominator for all accuracy
 columns (12 no-answer queries are excluded).

@@ -1,6 +1,6 @@
 strategy,entry,hit@1,hit@3,hit@5,mrr,avg_nodes_visited,avg_hops
-broadcast,gateway,0.787,0.918,0.918,0.85,6.0,2.0
-first_served,gateway,0.541,0.656,0.656,0.593,2.97,1.25
-local_first,gateway,0.541,0.656,0.656,0.593,2.97,1.39
-first_served,local,0.77,0.951,0.951,0.85,2.33,0.1
-local_first,local,0.77,0.951,0.951,0.85,2.33,0.54
+broadcast,any,0.705,0.918,0.918,0.812,6.0,2.0
+first_served,gateway,0.492,0.656,0.672,0.571,2.97,1.25
+local_first,gateway,0.492,0.656,0.656,0.572,2.97,1.39
+first_served,local,0.705,0.951,0.967,0.814,2.33,0.1
+local_first,local,0.705,0.951,0.951,0.815,2.33,0.54

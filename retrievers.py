@@ -76,7 +76,7 @@ class BiEncoderRetriever:
         top_idx = top_idx[np.argsort(-sims[top_idx])]
 
         if self.use_reranker:
-            pairs = [(query, self.texts[i]) for i in top_idx]
+            pairs = [(q, self.texts[i]) for i in top_idx]
             scores = np.asarray(self.cross.predict(pairs))
             order = np.argsort(-scores)
             ranked = [(self.endpoints[top_idx[j]], float(scores[j])) for j in order]

@@ -11,9 +11,11 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-The [dataset](https://www.kaggle.com/datasets/francoisxa/ds2ostraffictraces) `mainSimulationAccessTraces.csv` must be in this directory (the DS2OS IoT traffic trace; 357,952 rows -> 286 unique service records over 170 endpoints).
+The [dataset](https://www.kaggle.com/datasets/francoisxa/ds2ostraffictraces) `mainSimulationAccessTraces.csv` must be in this directory (the DS2OS IoT traffic trace; 357,952 rows -> 286 unique service records over 170 endpoints). It is committed to this repo, but pre-filtered from the original 13-column Kaggle export down to the 4 columns these experiments actually use (`operation`, `destinationServiceType`, `destinationLocation`, `accessedNodeAddress`) to keep the repository lean; the full 13-column trace is on Kaggle at the link above if you need the other columns.
 
 First runs download the sentence-transformer / cross-encoder models from the Hugging Face Hub and cache them locally.
+
+**Hardware/software pinned for the manuscript's reported numbers:** Intel Core Ultra 7 265HX (20 cores), 64 GB RAM, Windows 11, PyTorch 2.12, sentence-transformers 5.5. The GPU scratch/timing-only runs used an NVIDIA RTX PRO 4000 (16 GB) laptop GPU.
 
 **Notes:** every reported number is measured on CPU. Accuracy is mildly device-sensitive (a 1-3 query float-precision flip between CPU and GPU), so the manuscript standardizes on the CPU deployment environment. Classifier metrics are mean +/- STD over seeds 42-46; the frozen retriever is deterministic. The classifier drivers accept `FORCE_DEVICE=cuda` for scratch runs, whose outputs get a `_gpu` suffix; their accuracy is never reported. Single exception: the manuscript's deployment footnote cites the GPU full-retrain *time* from `results_classifier_pernode_retrain_gpu.csv` (timing only, to show hardware does not close the maintenance gap).
 
@@ -21,7 +23,7 @@ First runs download the sentence-transformer / cross-encoder models from the Hug
 
 | File | What it is |
 |---|---|
-| `queries.py` | The 73-query benchmark (7 categories). `python queries.py` prints the composition and runs `validate()`. |
+| `queries.py` | The 73-query benchmark (8 categories). `python queries.py` prints the composition and runs `validate()`. |
 | `eval_lib.py` | Record builders (`sentence` / `tuple` / `td_like`), metrics (Hit@k, Recall@k, Precision@k, MRR, no-answer AUROC/F1), latency, and the retriever-agnostic `evaluate()` driver. `python eval_lib.py` runs a self-test. 
 | `retrievers.py` | All retrievers: `ExactLookupRetriever`, `TfidfRetriever`, `BM25Retriever`, `BiEncoderRetriever` (+ optional cross-encoder rerank). Interface: `.search(query, top_k) -> [(endpoint, score), ...]`. |
 | `classifier_baseline.py` | Faithful PyTorch port of the Llopis et al. supervised endpoint classifier (the retrieval-vs-classification foil). `python classifier_baseline.py` trains one seed (~0.79 val top-1, reproducing prior work) and scores it on the query benchmark. |
@@ -33,12 +35,14 @@ First runs download the sentence-transformer / cross-encoder models from the Hug
 |---|---|---|
 | `run_centralized.py` | `results_centralized_<format>.csv`, `results_centralized_<format>_percat.csv` | Centralized comparison incl. reranking rows (Table `tab:centralized`) and per-category breakdown (Table `tab:percat`) |
 | `run_format_ablation.py` | `results_format_ablation.csv` | Record-format ablation (one-sentence summary in the Results; table removed for space) |
+| `run_preprocessing_ablation.py` | `results_preprocessing_ablation.csv` | Retriever + classifier (5 seeds) with `eval_lib.preprocess_text` OFF on both sides, matching prior work's raw (no camelCase-split, no lowercasing) setup (Limitations paragraph; full numbers in the Appendix). |
 | `run_classifier_multiseed.py` | `results_classifier_multiseed.csv`, `results_classifier_perclass.csv`, `results_classifier_perclass_bins.csv` | Classifier side of the head-to-head: benchmark Hit@k / MRR / no-answer AUROC and per-category Hit@1 and Hit@3 over 5 seeds (classifier row of `tab:centralized`, classifier columns of `tab:percat`), plus per-endpoint recall binned by frequency. 5 CPU trainings, ~35 min. |
 | `run_perclass_balanced.py` | `results_perclass_balanced.csv`, `results_perclass_balanced_bins.csv`, `results_perclass_balanced_summary.csv` | Natural (imbalanced) vs class-balanced training, per-endpoint recall (Table `tab:perclass-indist`); validation accuracies + benchmark transfer of both trained models (re-balancing discussion). 10 CPU trainings. |
 | `run_perclass_singleton.py` | `results_perclass_singleton.csv`, `results_perclass_singleton_bins.csv` | The singleton-copy probe: even one training copy of a device's lone record leaves the classifier at 0.00 on singletons (Discussion). 5 trainings. |
 | `run_federated.py` | `results_federated.csv` | Federated accuracy + nodes-visited + hops across strategies and entry points (Table `tab:federated`). `federated_results_explained.md` verifies every number by hand. |
 | `run_federated_tau_sweep.py` | `results_federated_tau_sweep.csv` | Delegation-threshold sensitivity: tau in {0.30..0.70} for both delegating strategies and entry modes; backs the "mid-range operating point, not a tuned optimum" sentence in the federated results. |
 | `run_bootstrap_ci.py` | `results_bootstrap_ci.csv` | Paired bootstrap 95% CIs (10,000 resamples, RNG seed 42) for Hit@1 of every centralized method and its difference vs the deployed winner; backs the confidence-interval sentences in the centralized results. |
+| `run_bootstrap_ci_auroc.py` | `results_bootstrap_ci_auroc.csv` | Bootstrap 95% CIs (10,000 resamples, RNG seed 42, over all 73 queries) for no-answer AUROC and AUPRC of every centralized method; backs the AUROC/AUPRC uncertainty sentence in the centralized results. |
 | `run_deployment.py` | `results_deployment.csv` | Retriever rows of the deployment table: params, index memory, build time, p50/p95 latency, per-device add/delete, mean +/- STD over 5 runs (Table `tab:deployment`). Run on a quiet machine. |
 | `run_classifier_deployment.py` | `results_classifier_deployment.csv` | Classifier row of the deployment table: size, full-retrain time (= per-device update cost), p50/p95 latency over 5 seeds. Run on a quiet machine. |
 | `run_classifier_pernode_retrain.py` | `results_classifier_pernode_retrain.csv` | Classifier retrain time on each federated node partition (the per-node maintenance cost in prior work's federated design) plus the full dataset, 5 seeds per scope; backs the per-node retrain sentence in the deployment section. 35 CPU trainings (~2x a full training in total compute). Run on a quiet machine. |
@@ -47,7 +51,7 @@ First runs download the sentence-transformer / cross-encoder models from the Hug
 
 `make_results_workbook.py` bundles all `results_*.csv` into `results_all.xlsx` (one sheet per CSV) for convenient viewing. The CSVs stay the source of truth; re-run the script after regenerating any CSV.
 
-The [Appendix](#appendix-extended-results-and-analyses-omitted-from-the-paper-for-space) at the end of this file collects extended results and analyses that back the paper but were omitted from the 8-page version for space (no-answer AUPRC, the full federated threshold sweep, reranking rows, tie analyses). Everything in it traces to the `results_*.csv` files here.
+The [Appendix](#appendix-extended-results-and-analyses-omitted-from-the-paper-for-space) at the end of this file collects extended results and analyses that back the paper but were omitted from the 8-page version for space (the full no-answer AUPRC table, the full federated threshold sweep, reranking rows, tie analyses). Everything in it traces to the `results_*.csv` files here. (The paper's centralized results now report the deployed model's no-answer AUPRC and bootstrap CIs for AUROC/AUPRC alongside the point-estimate AUROC comparison; the appendix table below gives the full per-method breakdown.)
 
 ## Reproduce the experiments
 
@@ -64,6 +68,7 @@ python run_centralized.py mainSimulationAccessTraces.csv tuple
 python run_centralized.py mainSimulationAccessTraces.csv td_like
 python run_format_ablation.py
 python run_bootstrap_ci.py
+python run_bootstrap_ci_auroc.py
 
 # 2. retrieval vs supervised classifier (5 CPU trainings, ~35 min)
 python run_classifier_multiseed.py
@@ -84,9 +89,11 @@ python run_classifier_pernode_retrain.py
 
 ## Headline results
 
-**Best retriever.** `all-MiniLM-L6-v2`, no reranker: Hit@1 = 0.79, Hit@3 = 0.92, Hit@10 = 0.97, MRR = 0.86 (templated Hit@1 = 1.00), the smallest model, beating the larger mpnet encoders and the lexical baselines (TF-IDF 0.49, BM25 0.39, exact lookup 0.18). No reranked configuration improves Hit@1. See `results_centralized_sentence.csv`.
+**Best retriever (deployed).** `all-MiniLM-L6-v2`, no reranker: Hit@1 = 0.71, Hit@3 = 0.92, Hit@10 = 1.00, MRR = 0.81 (templated Hit@1 = 1.00), the smallest model, beating the larger mpnet encoders (unreranked) and the lexical baselines (TF-IDF 0.34, BM25 0.25, exact lookup 0.16). Two of fifteen reranked configurations (all-mpnet-base-v2 or all-MiniLM-L12-v2 + TinyBERT-L-2) nominally edge past it on Hit@1 (0.72), but the gap is not resolved by a paired bootstrap CI (diff -0.016, CI [-0.16, 0.13]) and costs 3-5x the latency, so the smaller unreranked model remains the deployment recommendation. See `results_centralized_sentence.csv` and `results_bootstrap_ci.csv`.
 
-**Retrieval vs supervised classifier.** The classifier reproduces 0.794 +/- 0.001 random-split validation accuracy but scores 0.22 +/- 0.04 Hit@1 on the query benchmark (templated 0.90; paraphrase / synonym / abstract near 0.00), and its softmax confidence separates answerable from no-answer queries only weakly (AUROC 0.55 +/- 0.11 vs the retriever's 0.84). The frozen retriever reaches 0.79 on the same queries. Per-endpoint, the classifier's in-distribution top-1 recall averages 0.47 across all 170 endpoints (0.00 on the 57 single-record devices) vs the retriever's 0.85 (singletons 0.97); class-balanced retraining recovers the tail in-distribution but transfers nothing to the benchmark (`results_perclass_balanced*.csv`).
+Hit@1 and MRR are scored with ties resolved adversarially: several DS2OS records serialize to identical text (e.g. a sensor's `.../movement` reading and its `.../lastChange` timestamp), so a text-only method can score them exactly equal, and a method is credited only for the rank an acceptable endpoint is *guaranteed* under any resolution of such a tie (see `guaranteed_rank` in `eval_lib.py`). This makes both metrics independent of trace row order; see the "Templated-miss tie analysis" and "Address-level scoring example" entries in the Appendix.
+
+**Retrieval vs supervised classifier.** The classifier reproduces 0.794 +/- 0.001 random-split validation accuracy but scores 0.22 +/- 0.04 Hit@1 on the query benchmark (templated 0.89; paraphrase / synonym / abstract near 0.00; the two-query ambiguous-instance category is a 0.60 outlier, too small a sample to read as a genuine capability), and its softmax confidence separates answerable from no-answer queries only weakly (AUROC 0.55 +/- 0.11 vs the retriever's 0.84). The frozen retriever reaches 0.71 on the same queries. Per-endpoint, the classifier's in-distribution top-1 recall averages 0.47 across all 170 endpoints (0.00 on the 57 single-record devices) vs the retriever's 0.85 (singletons 0.97); class-balanced retraining recovers the tail in-distribution but transfers nothing to the benchmark (`results_perclass_balanced*.csv`).
 
 **Deployment.** Index build ~0.2 s, per-device index update in milliseconds vs a full ~147 s CPU retrain for the classifier per onboarded device (`results_deployment.csv`, `results_classifier_deployment.csv`).
 
@@ -94,20 +101,49 @@ python run_classifier_pernode_retrain.py
 
 Extended results and analyses from the replication package for *Retrieval-Based Natural-Language Device Discovery in the Web of Things*. Every claim below is backed by the `results_*.csv` artifacts in this directory; the material was omitted from the 8-page paper for space, not for validity.
 
-### No-answer AUPRC (abstention under class imbalance)
+### Full pairwise bootstrap CIs for Hit@1 (Table II)
 
-The paper reports abstention quality as AUROC. Because the 12 no-answer queries are a minority of the query benchmark (12/73), the area under the precision-recall curve (AUPRC) for the no-answer class is the more conservative summary under class imbalance (data: `results_centralized_sentence.csv`):
+The paper's centralized-results text gives only the headline gaps (vs. the lexical baselines, and vs. the best reranked configuration). Full pairwise paired-bootstrap 95% CIs for Hit@1 against the recommended model, `all-MiniLM-L6-v2` (data: `results_bootstrap_ci.csv`, 61 answerable queries, 10,000 resamples, RNG seed 42):
+
+| Method | Hit@1 | 95% CI | Diff vs. recommended | Diff 95% CI | Resolved? |
+|---|---|---|---|---|---|
+| all-MiniLM-L6-v2 (recommended) | 0.705 | [0.59, 0.82] | -- | -- | -- |
+| all-MiniLM-L12-v2 | 0.574 | [0.44, 0.69] | +0.131 | [0.03, 0.23] | yes |
+| multi-qa-MiniLM-L6-cos-v1 | 0.590 | [0.46, 0.71] | +0.115 | [0.03, 0.21] | yes |
+| all-mpnet-base-v2 | 0.557 | [0.43, 0.69] | +0.148 | [0.05, 0.26] | yes |
+| multi-qa-mpnet-base-dot-v1 | 0.607 | [0.48, 0.72] | +0.098 | [0.00, 0.20] | no (touches 0) |
+| all-mpnet-base-v2+TinyBERT-L-2 (best rerank) | 0.721 | [0.61, 0.84] | -0.016 | [-0.16, 0.13] | no |
+| exact lookup | 0.164 | [0.08, 0.26] | +0.541 | [0.43, 0.67] | yes |
+| tfidf | 0.344 | [0.23, 0.46] | +0.361 | [0.25, 0.49] | yes |
+| bm25 | 0.246 | [0.15, 0.36] | +0.459 | [0.34, 0.59] | yes |
+
+"Diff" is the recommended model's Hit@1 minus the row's; "Resolved" means the diff's CI excludes 0. The recommended model's lead is resolved against every lexical baseline and three of the four other bi-encoders; only the gaps with `multi-qa-mpnet-base-dot-v1` and the best reranked configuration are not resolved at this benchmark size (n=61 answerable queries).
+
+### No-answer AUPRC and bootstrap CIs (abstention under class imbalance)
+
+The paper's centralized results now report, alongside the AUROC point estimates, the deployed model's no-answer AUPRC and bootstrap 95% CIs for both AUROC and AUPRC (data: `results_bootstrap_ci_auroc.csv`, 10,000 resamples over all 73 queries, RNG seed 42). Because the 12 no-answer queries are a minority of the benchmark (12/73), the area under the precision-recall curve (AUPRC) for the no-answer class is the more conservative summary under class imbalance, and its CI is wide at this sample size. The full per-method table (omitted from the paper for space):
+
+| method | AUROC | 95% CI | AUPRC$_{na}$ | 95% CI |
+|---|---|---|---|---|
+| all-MiniLM-L6-v2 (deployed) | 0.84 | [0.74, 0.93] | 0.46 | [0.25, 0.73] |
+| all-MiniLM-L12-v2 | 0.87 | [0.76, 0.95] | 0.57 | [0.31, 0.81] |
+| multi-qa-MiniLM-L6-cos-v1 | 0.86 | [0.75, 0.94] | 0.55 | [0.29, 0.80] |
+| all-mpnet-base-v2 | 0.88 | [0.79, 0.95] | 0.51 | [0.30, 0.82] |
+| multi-qa-mpnet-base-dot-v1 | 0.95 | [0.89, 0.99] | 0.72 | [0.48, 0.95] |
+| all-mpnet-base-v2+TinyBERT-L-2 (best rerank) | 0.81 | [0.70, 0.90] | 0.46 | [0.22, 0.71] |
+| exact | 0.66 | [0.52, 0.79] | 0.23 | [0.12, 0.40] |
+| tfidf | 0.70 | [0.56, 0.83] | 0.32 | [0.15, 0.59] |
+| bm25 | 0.74 | [0.60, 0.86] | 0.29 | [0.15, 0.51] |
 
 - Bi-encoders: no-answer AUPRC 0.46-0.72, versus 0.23-0.32 for the training-free baselines.
 - Best abstention: multi-qa-mpnet-base-dot-v1 (AUPRC 0.72, AUROC 0.95).
-- The best-ranking model, all-MiniLM-L6-v2, reaches only AUPRC 0.46 despite AUROC 0.84: abstention is only partially solved and remains an open gap.
+- The deployed model, all-MiniLM-L6-v2, reaches only AUPRC 0.46 despite AUROC 0.84: abstention is only partially solved and remains an open gap. Its AUPRC CI, [0.25, 0.73], overlaps both the best model's [0.48, 0.95] and the strongest baseline's (tfidf, [0.15, 0.59]), so at this benchmark size (only 12 no-answer queries) individual method-vs-method AUPRC gaps are not statistically resolved; only the point estimates show a consistent bi-encoder-over-baseline ordering.
 
-### Templated-miss tie analysis (Table III)
+### Ambiguous-instance tie analysis (Table III)
 
-Neither training-free miss on the templated queries is a linguistic failure; each is a tie between equally matching records:
+Two queries ("I need to read batteryService in Garage" and "Power reading for the garage cells") both tie their two acceptable addresses (`.../battery1/charge`, `.../battery2/charge`) against two non-acceptable siblings (`.../charging`) at an identical score. They read as templated/synonym-style sentences, but the garage happens to hold two physical batteries, so unlike every other templated or synonym query they have two acceptable endpoints; `queries.py` breaks them out into their own `ambiguous_instance` category (n=2) rather than leaving them to silently inflate or deflate the templated/synonym-heavy denominators. Under adversarial tie resolution (see "Best retriever" above and `guaranteed_rank` in `eval_lib.py`) the guaranteed rank for both is 3, not 1, so TF-IDF, BM25, and the bi-encoder all score Hit@1 = 0.00 / Hit@3 = 1.00 on this category — the one category where the classifier (softmax scores rarely tie exactly) beats the bi-encoder at Hit@1 (0.60 vs 0.00), though n=2 makes that a single-query swing, not a real capability gap.
 
-- Exact lookup's single templated miss confuses the `Bedroom` and `BedroomParents` locations after camelCase splitting.
-- TF-IDF's single templated miss returns a sibling address of the correct battery device, which the address-level scoring counts as a miss.
+Exact lookup misses one templated query for an unrelated reason: it confuses the `Bedroom` and `BedroomParents` locations after camelCase splitting.
 
 ### Address-level scoring example (Query Benchmark)
 
@@ -119,16 +155,16 @@ Data: `results_federated_tau_sweep.csv`. Applies to either delegating strategy (
 
 | tau  | Entry   | Hit@1 | Hit@3 | MRR  | Nodes |
 |------|---------|-------|-------|------|-------|
-| 0.30 | gateway | 0.39  | 0.48  | 0.43 | 1.6   |
-| 0.30 | local   | 0.77  | 0.95  | 0.85 | 1.3   |
-| 0.50 | gateway | 0.57  | 0.70  | 0.63 | 4.0   |
-| 0.50 | local   | 0.77  | 0.92  | 0.84 | 3.3   |
-| 0.60 | gateway | 0.67  | 0.79  | 0.73 | 4.7   |
-| 0.60 | local   | 0.79  | 0.92  | 0.85 | 4.4   |
-| 0.70 | gateway | 0.67  | 0.79  | 0.73 | 5.0   |
-| 0.70 | local   | 0.79  | 0.92  | 0.85 | 4.9   |
+| 0.30 | gateway | 0.36  | 0.48  | 0.41 | 1.6   |
+| 0.30 | local   | 0.71  | 0.95  | 0.81 | 1.3   |
+| 0.50 | gateway | 0.53  | 0.70  | 0.60 | 4.0   |
+| 0.50 | local   | 0.71  | 0.92  | 0.80 | 3.3   |
+| 0.60 | gateway | 0.59  | 0.79  | 0.68 | 4.7   |
+| 0.60 | local   | 0.71  | 0.92  | 0.80 | 4.4   |
+| 0.70 | gateway | 0.59  | 0.79  | 0.68 | 5.0   |
+| 0.70 | local   | 0.71  | 0.92  | 0.80 | 4.9   |
 
-Gateway-entry accuracy climbs to 0.67 at about five nodes visited as tau rises; local-entry accuracy reaches the broadcast value (0.79) from tau = 0.60 at 4.4-4.9 nodes instead of broadcast's 6.
+Local-entry Hit@1 already matches broadcast (0.71) at every tau tested, including the lowest (0.30, at only 1.3 nodes), so raising tau there only adds node visits without an accuracy gain. Gateway-entry accuracy rises with tau but plateaus at 0.59 from tau = 0.60, short of broadcast's 0.71 even at 5.0 nodes.
 
 ### Reranking rows omitted from Table II
 
@@ -136,11 +172,26 @@ The paper keeps only the best reranked combination (all-mpnet-base-v2 + TinyBERT
 
 | Configuration                   | Hit@1 | Hit@3 | Hit@5 | Hit@10 | MRR  | AUROC_na | p95 (ms) |
 |---------------------------------|-------|-------|-------|--------|------|----------|----------|
-| all-MiniLM-L6-v2 + TinyBERT-L-2 | 0.69  | 0.90  | 0.93  | 0.97   | 0.79 | 0.79     | 14.7     |
-| all-MiniLM-L6-v2 + MiniLM-L-6   | 0.67  | 0.92  | 0.93  | 0.95   | 0.80 | 0.83     | 45.1     |
-| all-MiniLM-L6-v2 + MiniLM-L-12  | 0.62  | 0.89  | 0.93  | 0.95   | 0.76 | 0.85     | 76.2     |
+| all-MiniLM-L6-v2 + TinyBERT-L-2 | 0.69  | 0.92  | 0.97  | 1.00   | 0.80 | 0.80     | 11.8     |
+| all-MiniLM-L6-v2 + MiniLM-L-6   | 0.57  | 0.92  | 0.95  | 0.98   | 0.75 | 0.84     | 53.1     |
+| all-MiniLM-L6-v2 + MiniLM-L-12  | 0.62  | 0.92  | 0.95  | 0.98   | 0.78 | 0.85     | 135.8    |
 
-On all-MiniLM-L6-v2, every reranker lowers Hit@1 (0.79 to 0.62-0.69), leaves Hit@3 essentially unchanged (~0.92), and multiplies p95 latency by 3-16x.
+On all-MiniLM-L6-v2 itself, every reranker still lowers Hit@1 (0.71 to 0.57-0.69), leaves Hit@3 essentially unchanged (~0.92), and multiplies p95 latency by 3-31x. Two of the fifteen combinations edge past the deployed model's Hit@1 when the reranker is instead paired with a larger base encoder (all-mpnet-base-v2 or all-MiniLM-L12-v2 + TinyBERT-L-2, both 0.72) -- see the head-to-head paragraph above and `retrievers.py`'s cross-encoder register-mismatch fix note below.
+
+**Cross-encoder register-mismatch fix (2026-07-16).** The reranker previously scored `(raw_query, preprocessed_record_text)` pairs -- the bi-encoder path correctly used the preprocessed query, but the cross-encoder path used the original, unprocessed query string against the already-lowercased/`camelCase`-split record text. This register mismatch (capitalized, unsplit query text vs. lowercase, split record text) made the cross-encoder's judgments noisier than they should have been. Fixed in `retrievers.py`'s `BiEncoderRetriever.search` (score `(q, self.texts[i])`, not `(query, self.texts[i])`); every `results_centralized_*.csv` and the paper's reranking numbers are regenerated post-fix.
+
+### Preprocessing ablation: is the retrieval-classifier gap an artifact of it?
+
+Every headline number applies `eval_lib.preprocess_text` (camelCase splitting, lowercasing, slash removal) to both the retriever's record/query text and the classifier reimplementation's training/query text -- a fair, consistent choice, but one prior work's own classifier pipeline does not make (confirmed directly with the Llopis et al. authors: no camelCase splitting or lowercasing). `run_preprocessing_ablation.py` reruns the deployed retriever (`all-MiniLM-L6-v2`, no rerank) and the classifier baseline (5 seeds) with preprocessing OFF on both sides, i.e. matching prior work's raw setup exactly (data: `results_preprocessing_ablation.csv`):
+
+| Method | Preprocessing | Hit@1 | Hit@3 | MRR |
+|---|---|---|---|---|
+| Retriever | on (default) | 0.71 | 0.92 | 0.81 |
+| Retriever | off (raw) | 0.54 | 0.87 | 0.70 |
+| Classifier | on (default) | 0.22 +/- 0.04 | 0.29 +/- 0.04 | 0.29 +/- 0.04 |
+| Classifier | off (raw) | 0.23 +/- 0.03 | 0.26 +/- 0.05 | 0.27 +/- 0.05 |
+
+Two findings. First, preprocessing materially helps the retriever (Hit@1 0.71 -> 0.54 without it) but barely moves the classifier (0.22 -> 0.23): a frozen sentence encoder relies on splitting compound identifiers like `lightControler` into ordinary English words its pretraining recognizes, while the classifier's word-index tokenizer just absorbs `lightcontroler` (or whatever surface form it sees) as its own opaque vocabulary entry and memorizes it end-to-end, so normalization is nearly a no-op for it. Second, and more importantly for the retrieval-vs-classifier comparison: retrieval still leads the classifier by a wide margin (0.54 vs 0.23 Hit@1) with *no* preprocessing on either side, i.e. under prior work's own raw setup. The headline gap is therefore not an artifact of a preprocessing choice retrieval benefits from more -- it is smaller in absolute retrieval terms without it, but it does not close.
 
 ### The bi-encoder's single ambiguous-device miss (Table III)
 
@@ -162,5 +213,5 @@ For unambiguous queries, which have a single acceptable endpoint, both are deter
 
 - Why retrieval absorbs the long tail (cut from the Introduction; the argument survives in the Discussion): the index holds each unique record exactly once, so a rare device is represented as faithfully as a frequent one; matching by general language embeddings absorbs paraphrase, synonyms, and indirect goal statements without task-specific training; and the index is decoupled from the encoder, so onboarding or updating a device costs a millisecond-scale index update rather than a retraining cycle.
 - First-served versus local-first (cut recap): both follow the same breadth-first walk and stopping rule but return different lists. First-served commits to the single node it stops at; local-first ranks candidates from every node it visits, offering cross-node alternatives on ambiguous queries and degrading into a broadcast when no node reaches tau.
-- Exact structured lookup reaches Hit@1 0.92 on templated queries but 0.18 overall; TF-IDF reaches 0.49 and BM25 0.39 (Tables II and III carry the full numbers). Its role in the comparison: it shows what matching without any linguistic generalization achieves.
+- Exact structured lookup reaches Hit@1 0.83 on templated queries but 0.16 overall; TF-IDF reaches 0.34 and BM25 0.25 (Tables II and III carry the full numbers). Its role in the comparison: it shows what matching without any linguistic generalization achieves.
 - Generative baselines (details behind the paper's exclusion argument): the concrete LLM-at-query-time variants are prompting an LLM to emit SPARQL or JSONPath, or placing the whole record set in the LLM's context, which is feasible at this corpus size but does not scale as the registry grows and can return an endpoint absent from the registry or an empty result. Frozen retrieval degrades gracefully, abstains, needs no training, and can serve as the grounding step such systems rely on.
